@@ -1,0 +1,120 @@
+from PyQt5.QtWidgets import QApplication,QWidget, QLabel, QGridLayout, QLineEdit, QPushButton, QHBoxLayout, QMessageBox
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt # zawiera rozne stale
+
+
+class Kalkulator(QWidget): #dziedziczymy metody i wlasciwosci z klasy QWidget
+    def __init__(self, parent=None): # konstruktor?
+        super(Kalkulator, self).__init__(parent) # zwraca nam klase rodzica i wywoluje jego konstruktor
+        self.interfejs() # w tej metodzie bedziemy tworzyc GUI i wywolujemy ta metode w konstruktorze
+
+    def interfejs(self):
+
+        #etykiety
+        etykieta1 = QLabel("Liczba 1:", self) # tworzymy obiekt klasy QLabel, do jej kontruktowa przekazujemy tekst ktory sie wyswietli
+        etykieta2 = QLabel("Liczba 2:", self) # Opcjonalnie drugi argument wskazuje obiekt rodzica danej kontrolki
+        etykieta3 = QLabel("Wynik:", self)
+
+        #przypisanie widgetow do ukladu tabelarycznego
+        ukladT = QGridLayout() # tworzymy pomocniczy obiekt do rozmieszczenia etykiet w ukl. tabelarycznym
+        ukladT.addWidget(etykieta1, 0, 0) #dodajemy etykiety do ukladu czyli nazwa obiektu, numer wiersza i kolumny definiujacych komorke w ktorej bedzie obiekt
+        ukladT.addWidget(etykieta2, 0, 1)
+        ukladT.addWidget(etykieta3, 0, 2)
+
+        #1-liniowe pole edycyjne
+        self.liczba1Edt = QLineEdit() #jesli chcemy miec dostep do wlasciwosci obiektow interfejsu w zasiegu calej klasy
+        self.liczba2Edt = QLineEdit() # czyli w innych funkcjach, obiekty musimy definiowac jako skladowe klasy czy poprzedzajac self
+        self.wynikEdt = QLineEdit()
+
+        self.wynikEdt.ReadOnly = True
+        self.wynikEdt.setToolTip('Wpisz <b>liczby</b> i wybierz działanie...')
+
+        ukladT.addWidget(self.liczba1Edt, 1, 0)
+        ukladT.addWidget(self.liczba2Edt, 1, 1)
+        ukladT.addWidget(self.wynikEdt, 1, 2)
+
+        #przyciski
+        dodajBtn = QPushButton("&Dodaj", self) #self okresla nam rodzica czyli widget nadrzedny w tym przyopadku okno glowne
+        odejmijBtn = QPushButton("&Odejmij", self)
+        dzielBtn = QPushButton("D&ziel", self)
+        mnozBtn = QPushButton("&Mnoz", self)
+        koniecBtn = QPushButton("&Koniec", self)
+        testBtn = QPushButton("Test", self)
+        koniecBtn.resize(koniecBtn.sizeHint())
+
+        ukladH = QHBoxLayout() #uklad horyzontalny
+        ukladH.addWidget(dodajBtn)
+        ukladH.addWidget(odejmijBtn)
+        ukladH.addWidget(dzielBtn)
+        ukladH.addWidget(mnozBtn)
+        ukladH.addWidget(testBtn)
+
+        # obiekt, wiersz2, kolumna0, ilosc wierszy i kolumn jakie chcemy wykorzystac.
+        # u mnie mam 3 kolumny z etykeiutami i line editami wiec dlatego chce miec
+        # to rozmiewszczone na 1 wierszu i 3 kolumnach
+        ukladT.addLayout(ukladH, 2, 0, 1, 3)
+        ukladT.addWidget(koniecBtn, 3, 0, 1, 3)
+
+        #przypisanie utworzonego ukladu do okna
+        self.setLayout(ukladT) # powiazujemy nasz obiekt z oknem naszej apki
+
+        # generujemy sygnaly i laczymy ze slotem
+        koniecBtn.clicked.connect(self.koniec)
+        dodajBtn.clicked.connect(self.dzialanie)
+        odejmijBtn.clicked.connect(self.dzialanie)
+        dzielBtn.clicked.connect(self.dzialanie)
+        mnozBtn.clicked.connect(self.dzialanie)
+
+        self.setWindowIcon(QIcon('kalkulator.png'))
+        self.setGeometry(60, 60, 300, 100) # okreslamy polozenie okna apki i jego rozmiaru
+        self.setWindowTitle("Prosty kalkulatorek")
+        self.show()
+
+    def koniec(self):
+        self.close()
+
+    def closeEvent(self, event):
+        # obiekt rodzica - self, tytul okna dialogowego, komunikat dla uzytkownika, kombinacje przyciskow, przycisk domyslny
+        odp = QMessageBox.question(self, 'Komunikat', "Czy na pewno kończymy?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if odp == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Escape:
+            self.close()
+
+    def dzialanie(self):
+        nadawca = self.sender()
+
+        try:
+            liczba1 = float(self.liczba1Edt.text())
+            liczba2 = float(self.liczba2Edt.text())
+            wynik = ""
+
+            if nadawca.text() == "&Dodaj":
+                wynik = liczba1 + liczba2
+            elif nadawca.text() =="&Odejmij":
+                wynik = liczba1 - liczba2
+            elif nadawca.text() == "&Mnoz":
+                wynik = liczba2 * liczba2
+            else:
+                try:
+                    wynik = round(liczba1/liczba2, 9) # wynik zaokraglony do 9 miejsc po przecinku
+                except ZeroDivisionError:
+                    QMessageBox.critical(self, "UWAGA", "Nie dziel przez zero !", QMessageBox.Ok)
+                    return
+
+            self.wynikEdt.setText(str(wynik))
+
+        except ValueError:
+            QMessageBox.warning(self, "Blad", "Bledne dane", QMessageBox.Ok)
+
+if __name__=='__main__':
+    import sys
+
+    app=QApplication(sys.argv) #tworzymy obiekt reprezentujacy aplikacje. sys.argv oznacza ze apka moze otrzymywac parametry z linii polecen
+    okno=Kalkulator() # tworzymy obiekt reprezentujacy okno apki, czyli instancje/obiekt klasy Kalkulator
+    sys.exit(app.exec_()) # app.exec to glowna petla programu, ktora rozpoczyna obsluge zdarzen.Zdarzenia gfenereowane sa przez system i uzytk. i przekazywane do widgetow apki
